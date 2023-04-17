@@ -1,0 +1,129 @@
+---
+title: "Logistic Regression from Scratch"
+author: "Prof. Karen Mazidi"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+editor_options:
+  chunk_output_type: inline
+---
+
+# Notebook for the Logistic Regression Chapter
+
+First, load the package and plasma data set. 
+
+```{r}
+#library(HSAUR)
+#data(plasma)
+
+#train_df <- read.csv("titanic_project-samp.csv", header = TRUE)
+#test_df <- read.csv("titanic_project-test.csv", header = TRUE)
+df <- read.csv("titanic_project.csv", header = TRUE)
+```
+
+### Logistic Regression using R
+
+Use R's glm() function first as our ground truth. 
+
+```{r}
+#set.seed(1234)
+i <- sample(1:nrow(df), 0.75*nrow(df), replace=FALSE)
+#i <- sample(1:nrow(train_df), 1.0*nrow(train_df), replace=FALSE)
+#j <- sample(1:nrow(test_df), 1.0*nrow(test_df), replace=FALSE)
+train <- df[i,]
+test <- df[-i,]
+
+#train <- train_df[i,]
+#test <- test_df[j,]
+
+#glm1 <- glm(ESR~fibrinogen, data=train, family=binomial)
+glm1 <- glm(survived~pclass, data=train, family=binomial)
+
+probs <- predict(glm1,  newdata=test, type="response")
+
+
+pred <- ifelse(probs> 0.5, 1, 0)
+acc <- mean(pred == as.integer(test$survived))
+summary(glm1)
+```
+
+### Logistic Regression from Scratch
+
+First we need to define the sigmoid function.
+
+```{r}
+# function to return a vector of sigmoid values from an input matrix
+sigmoid <- function(z){  # WHERE z IS WHAT? 
+  1.0 / (1+exp(-z))
+}
+# set up weight vector, label vector, and data matrix
+#weights <- c(1, 1)
+
+data_matrix <- cbind(rep(1, nrow(train_df)), train_df$pclass)
+
+
+#labels <- as.integer(train$ESR) - 1 # what are labels used for?
+labels <- as.integer(train_df$survived)
+# observe that if train$ESR > 20 then as.integer(train$ESR) yields 2 and if $ESR < 20 then as.integer returns 1
+# which would make the labels vector [1, 0, 0, 0, 0, ....]
+
+# Observe that if train$ESR < 20 then yield 1., w
+
+
+```
+
+Then we need code for gradient descent. The algorithm used here first starts with all weights = 1, then iterates. Notice we get the same weights (coefficients) as R gave us, but it took a lot longer.
+
+
+```{r}
+weights <- c(1, 1)  # repeat this for rerunning the block
+
+learning_rate <- 0.001
+for (i in 1:500000){
+
+#dataMat_W = data_matrix %*% weights 
+
+   
+   prob_vector <- sigmoid(data_matrix %*% weights) # sigmoid takes in a computed from vector multiplication data_matrix %*% weight
+  
+  error <- labels - prob_vector # the calculated prob_vector is subtracted from labels
+  weights <- weights + learning_rate * t(data_matrix) %*% error # t() returns the transpose of the matrix
+  
+  
+}
+weights
+```
+
+### Predict with the weights we generated
+
+```{r}
+# predict with our weights
+#test_matrix <- cbind(rep(1, nrow(test)), test$fibrinogen)
+test_matrix <- cbind(rep(1, nrow(test)), test_df$pclass)
+
+test_labels <- as.integer(test_df$survived)# - 1
+
+predicted <- test_matrix %*% weights # YOU USE THE WEIGHTS YOU FOUND
+
+probabilities <- exp(predicted) / (1 + exp(predicted)) #sigmoid?
+
+predictions <- ifelse(probabilities > 0.5, 1, 0)
+
+preEQtest <- predictions == test_labels ## asks if they are equal
+# if yes then output TRUE
+
+
+mean(predictions == test_labels) # average the  nums of TRUEs to num Trials
+```
+
+
+
+
+Visualization that the log odds is a line.
+
+```{r}
+plasma_log_odds <- cbind(rep(1, 32), plasma$fibrinogen) %*% weights
+plot(plasma$fibrinogen, plasma_log_odds, col=plasma$ESR)
+abline(weights[1], weights[2])
+```

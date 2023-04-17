@@ -1,0 +1,113 @@
+---
+title: "Gaussian Naive Bayes from Scratch"
+author: ivanhb
+output: html_notebook
+---
+
+# Load the data
+
+Data was derived from personal experience.
+
+```{r}
+df = read.csv('Gaussian NB.csv')
+df
+```
+
+### Plot the data
+
+```{r}
+attach(df)
+plot(height, weight, pch=21, bg=c("red", "blue")[child+1])
+```
+
+### Calculate priors
+
+```{r}
+priors <- c(
+  nrow(df[df$child == 0,]) / nrow(df),
+  nrow(df[df$child == 1,]) / nrow(df)
+)
+
+print(paste("priors", priors))
+```
+### Find means by class
+
+```{r}
+height_mean <- c(0, 0)
+weight_mean <- c(0, 0)
+
+for (child in c(0, 1)){
+  height_mean[child+1] <- mean(df$height[df$child == child])
+  weight_mean[child+1] <- mean(df$weight[df$child == child])
+}
+
+print(paste("height mean", height_mean))
+print(paste("weight mean", weight_mean))
+
+```
+### Find variance by class
+
+```{r}
+height_var <- c(0, 0)
+weight_var <- c(0, 0)
+
+for (child in c(0, 1)){
+  height_var[child+1] <- var(df$height[df$child == child])
+  weight_var[child+1] <- var(df$weight[df$child == child])
+}
+
+print(paste("height var", height_var))
+print(paste("weight var", weight_var))
+```
+
+### Function to calculate likelihood, given height or weight
+
+```{r}
+calc_likelihood <- function(value, mean_v, var_v) {
+  # run like this: calc_likelihood(n, n, n)
+  1 / sqrt(2 * pi * var_v) * exp(-(value - mean_v)^2 / (2 * var_v))
+}
+```
+
+### Function to calculate raw probabilities
+
+```{r}
+calc_raw_prob <- function(weight, height){
+  # calculate the numerator
+  num_child <- calc_likelihood(weight, weight_mean[2], weight_var[2]) *           calc_likelihood(height, height_mean[2], height_var[2]) * 
+       priors[2]
+  num_adult <- calc_likelihood(weight, weight_mean[1], weight_var[1]) *           calc_likelihood(height, height_mean[1], height_var[1]) * 
+       priors[1]
+  denominator <- num_child + num_adult
+  # calculate the probabilities
+  return (list(prob_child <- num_child / denominator, prob_adult <- num_adult / denominator))
+}
+```
+
+### Compare to Naive Bayes
+
+```{r}
+library(e1071)
+nb1 <- naiveBayes(child~., data=df)
+nb1
+```
+
+### Sample run
+
+```{r}
+predict(nb1, data.frame(weight=124, height=54), type="raw")
+```
+
+```{r}
+calc_raw_prob(124, 54)
+```
+### Try another
+
+
+```{r}
+predict(nb1, data.frame(weight=67, height=44), type="raw")
+```
+
+```{r}
+calc_raw_prob(67, 44)
+```
